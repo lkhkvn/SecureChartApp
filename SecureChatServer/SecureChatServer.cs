@@ -19,6 +19,8 @@ public class SecureChatServer
     private const string UploadDir = "ServerUploads";
 
     private static readonly ConcurrentDictionary<string, ClientConnection> _clients = new();
+    private static readonly ConcurrentDictionary<string, ChatMessage> _messages = new();
+
 
     public static async Task StartServer()
     {
@@ -113,10 +115,20 @@ public class SecureChatServer
                 {
                     await HandleIncomingImage(clientConn, msg);
                 }
+                else if (msg.StartsWith("[RECALL_REQ]:"))
+                {
+                    await HandleRecallMessage(clientConn, msg);
+                }
                 // ⭐ PHẦN ĐÃ SỬA: Bỏ kiểm tra [MSG]:. Mọi tin nhắn không phải lệnh đều được coi là tin nhắn chat.
                 else
                 {
-                    await BroadcastMessageAsync($"[{clientConn.Name}]: {msg}", clientConn);
+                    //  Khi nhận tin nhắn thường, gán ID và lưu lại
+                    var chatMsg = new ChatMessage(clientConn.Name, msg);
+                    _messages.TryAdd(chatMsg.Id, chatMsg);
+
+                    // Gửi đến tất cả client theo định dạng có ID
+                    string formatted = $"[MSG_BROADCAST]:{chatMsg.Id}|{chatMsg.Sender}|{chatMsg.Content}";
+                    await BroadcastMessageAsync(formatted, null);
                 }
             }
             catch (IOException)
@@ -225,6 +237,36 @@ public class SecureChatServer
             }
         }
     }
+    //  Xử lý lệnh thu hồi tin nhắn
+    private static async Task HandleRecallMessage(ClientConnection sender, string msg)
+    {
+        string msgId = msg.Substring(13).Trim();
+
+        if (_messages.TryRemove(msgId, out var recalledMsg))
+        {
+            Console.WriteLine($" Tin nhắn {msgId} của {sender.Name} đã được thu hồi.");
+
+            // Gửi lại cho tất cả client khác thông báo thu hồi
+            await BroadcastMessageAsync($"[RECALL]:{msgId}", null);
+        }
+        else
+        {
+            await SendPrivateAsync(sender, $"[ERROR] Tin nhắn {msgId} không tồn tại hoặc đã bị xóa.");
+        }
+    }
+
+    //Gửi thông báo riêng cho 1 client
+    private static async Task SendPrivateAsync(ClientConnection client, string msg)
+    {
+        try
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(msg + "\n");
+            await client.Stream!.WriteAsync(bytes, 0, bytes.Length);
+            await client.Stream.FlushAsync();
+        }
+        catch { }
+    }
+
 
     private static string GetUniqueFileName(string name)
     {
@@ -257,6 +299,21 @@ public class ClientConnection
         Client = client;
     }
 }
+// Lưu thông tin tin nhắn để có thể thu hồi
+public class ChatMessage
+{
+    public string Id { get; set; }
+    public string Sender { get; set; }
+    public string Content { get; set; }
+
+    public ChatMessage(string sender, string content)
+    {
+        Id = Guid.NewGuid().ToString();
+        Sender = sender;
+        Content = content;
+    }
+}
+
 
 public class Program
 {

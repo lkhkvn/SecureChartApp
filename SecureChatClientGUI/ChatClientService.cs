@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using System.Linq;
 
 namespace SecureChatClientGUI
 {
@@ -17,6 +18,15 @@ namespace SecureChatClientGUI
         private const int Port = 5000;
         // ⭐ SỬA LỖI SSL: Giữ "localhost" hoặc đổi sang giá trị khớp với CN của chứng chỉ Server.
         private const string ServerName = "localhost";
+
+        //  Sự kiện khi nhận tin nhắn mới
+        public event Action<ChatMessage>? MessageReceived;
+
+        //  Sự kiện khi có tin nhắn bị thu hồi
+        public event Action<string>? MessageRecalled;
+
+        // Sự kiện thay đổi danh sách người dùng online
+        public event Action<List<string>>? OnlineUsersUpdated;
 
         private TcpClient? _client;
         private SslStream? _sslStream;
@@ -164,6 +174,20 @@ namespace SecureChatClientGUI
                     string? receivedMessage = await reader.ReadLineAsync();
                     if (string.IsNullOrEmpty(receivedMessage)) break;
 
+                    // 1 Xử lý danh sách người dùng online
+                    if (receivedMessage.StartsWith("[USERS]:"))
+                    {
+                        // Dữ liệu ví dụ: [USERS]:Alice,Bob,Charlie
+                        string usersData = receivedMessage.Substring("[USERS]:".Length);
+                        var users = usersData.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                             .Select(u => u.Trim())
+                                             .ToList();
+
+                        OnlineUsersUpdated?.Invoke(users);
+                        continue;
+                    }
+
+                    //2 xu ly tin nhan he thong 
                     if (receivedMessage.StartsWith("[INFO]"))
                     {
                         // Xử lý tin nhắn INFO (Join/Leave/Rename)
@@ -174,6 +198,7 @@ namespace SecureChatClientGUI
                     }
                     else if (receivedMessage.StartsWith("[IMG_BROADCAST]:"))
                     {
+
                         // Xử lý ảnh (Cần kiểm tra lại logic nhận ảnh để khớp với format Server)
                         // Format Server: [IMG_BROADCAST]:filename|size|mime\n + [bytes] + \n[IMG_END]\n
 
@@ -216,12 +241,58 @@ namespace SecureChatClientGUI
                                     Sender = "Người khác",
                                     Image = img,
                                     IsMine = false,
-                                    Content = $"🖼️ Đã nhận ảnh: {fileName}"
+                                    Content = $" Đã nhận ảnh: {fileName}"
                                 });
                             });
-                            StatusChanged?.Invoke($"📥 Nhận ảnh: {fileName} ({size} bytes)");
+                            StatusChanged?.Invoke($" Nhận ảnh: {fileName} ({size} bytes)");
                         }
                     }
+                    else if (receivedMessage.StartsWith("[MSG]:"))
+                    {
+                        // ✅ Xử lý tin nhắn văn bản có ID (phục vụ thu hồi)
+                        // Format: [MSG]:messageId|sender|content
+                        string data = receivedMessage.Substring(6);
+                        string[] parts = data.Split('|');
+                        if (parts.Length >= 3)
+                        {
+                            string msgId = parts[0];
+                            string sender = parts[1];
+                            string content = parts[2];
+
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                MessageReceived?.Invoke(new ChatMessage
+                                {
+                                    MessageId = msgId,
+                                    Sender = sender,
+                                    Content = content,
+                                    IsMine = false
+                                });
+                            });
+                        }
+                    }
+
+                    else if (receivedMessage.StartsWith("[RECALL]:"))
+                    {
+                        string messageId = receivedMessage.Substring(9).Trim();
+
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            var messageToRemove = Messages.FirstOrDefault(m => m.MessageId == messageId);
+                            if (messageToRemove != null)
+                            {
+                                // Thay nội dung hiển thị 
+                                messageToRemove.Content = "[ Tin nhắn đã bị thu hồi]";
+                            }
+                            else
+                            {
+                                StatusChanged?.Invoke($"Không tìm thấy tin nhắn: {messageId}");
+                            }
+
+                            MessageRecalled?.Invoke(messageId);
+                        });
+                    }
+
                     else
                     {
                         // XỬ LÝ TIN NHẮN CHAT (Format: [Tên]: Nội dung)
@@ -285,5 +356,38 @@ namespace SecureChatClientGUI
             image.Freeze();
             return image;
         }
+
+        // -------------------- GỬI LỆNH THU HỒI --------------------
+        public async Task RecallMessageAsync(string messageId)
+        {
+            if (!IsConnected || _sslStream == null) return;
+            try
+            {
+                // ⭐ Cập nhật ngay trong danh sánh local
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var msg = Messages.FirstOrDefault(m => m.MessageId == messageId);
+                    if (msg != null)
+                    {
+                        msg.Content = "[ Bạn đã thu hồi tin nhắn này ]";
+                    }
+                });
+
+                // Gửi lệnh thu hồi lên server
+                string command = $"[RECALL_REQ]:{messageId}\n";
+                byte[] data = Encoding.UTF8.GetBytes(command);
+
+                await _sslStream.WriteAsync(data, 0, data.Length);
+                await _sslStream.FlushAsync();
+
+                StatusChanged?.Invoke($" Đã gửi yêu cầu thu hồi tin nhắn: {messageId}");
+            }
+            catch (Exception ex)
+            {
+                StatusChanged?.Invoke($" Lỗi khi gửi yêu cầu thu hồi: {ex.Message}");
+            }
+
+        }
+
     }
 }

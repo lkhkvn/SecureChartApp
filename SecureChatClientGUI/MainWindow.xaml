@@ -28,7 +28,7 @@
         <!-- Thanh kết nối -->
         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
             <TextBlock Text="Tên của bạn:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <TextBox x:Name="UserNameTextBox" Width="150" Text="Guest" Margin="0,0,10,0"/>
+            <TextBox x:Name="UserNameTextBox" Width="150" Text="Guest" Margin="0,0,10,0" TextChanged="UserNameTextBox_TextChanged"/>
             <Button x:Name="ConnectButton" Content="Kết nối" Click="ConnectButton_Click" Margin="0,0,5,0"/>
             <Button x:Name="DisconnectButton" Content="Ngắt kết nối" Click="DisconnectButton_Click" IsEnabled="False"/>
         </StackPanel>
@@ -115,5 +115,6 @@
             <Button x:Name="SendFileButton" Content="Gửi ảnh" Click="SendFileButton_Click" Width="90" IsEnabled="False" Margin="10,0,0,0"/>
             <TextBlock x:Name="StatusTextBlock" Text="Trạng thái: Đã ngắt kết nối" VerticalAlignment="Center" Margin="20,0,0,0" Foreground="Gray"/>
         </StackPanel>
+        <Button x:Name="btnThuHoi" Content="Thu Hồi" HorizontalAlignment="Left" Margin="362,0,0,10" Click="Button_Click" Height="20" VerticalAlignment="Bottom"/>
     </Grid>
 </Window>

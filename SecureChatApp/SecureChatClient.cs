@@ -203,8 +203,40 @@ public class SecureChatClient
                     _ = Task.Run(() => ReceiveAndSaveFileAsync(_sslStream, message));
                     continue;
                 }
-                Console.WriteLine(message);
+
+                // Xử lý message có header:
+                if (message.StartsWith("[MSG]:"))
+                {
+                    // [MSG]:<MessageId>|<Sender>|<Content>
+                    string data = message.Substring("[MSG]:".Length);
+                    var parts = data.Split(new[] { '|' }, 3);
+                    if (parts.Length == 3)
+                    {
+                        string msgId = parts[0];
+                        string sender = parts[1];
+                        string content = parts[2];
+                        Console.WriteLine($"[{sender}] {content} (id={msgId})");
+                        // Nếu có GUI: raise event hoặc gọi callback để thêm ChatMessage với MessageId
+                    }
+                    else
+                    {
+                        Console.WriteLine("[WARN] MSG header không đúng định dạng: " + message);
+                    }
+                }
+                else if (message.StartsWith("[RECALL]:"))
+                {
+                    string msgId = message.Substring("[RECALL]:".Length).Trim();
+                    Console.WriteLine($"[RECALL] Tin nhắn id={msgId} đã bị thu hồi.");
+                    // Nếu có GUI: raise event/call method để cập nhật ChatMessage có MessageId => set IsRecalled = true
+                }
+                else
+                {
+                    // fallback: in nguyên dòng nếu không có header
+                    Console.WriteLine(message);
+                }
             }
+
+
         }
         catch (Exception ex)
         {
@@ -244,9 +276,36 @@ public class SecureChatClient
             }
             else
             {
-                await _sslStream.WriteAsync(Encoding.UTF8.GetBytes(input + "\n"));
-                await _sslStream.FlushAsync();
+                // Gửi lệnh thu hồi: /recall <MessageId>
+                if (input.StartsWith("/recall "))
+                {
+                    string messageId = input.Substring("/recall ".Length).Trim();
+                    if (!string.IsNullOrEmpty(messageId))
+                    {
+                        // Gửi header thu hồi
+                        await SendStructuredMessageAsync($"[RECALL_REQ]:{messageId}");
+                        Console.WriteLine($"[INFO] Đã gửi lệnh thu hồi cho MessageId={messageId}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[WARN] Chưa nhập MessageId để thu hồi. Cú pháp: /recall <MessageId>");
+                    }
+                }
+                else
+                {
+                    // Gửi tin nhắn bình thường với MessageId
+                    string messageId = Guid.NewGuid().ToString();
+                    string sender = name ?? "Anonymous";
+                    string content = input.Replace("\n", " ").Replace("\r", "");
+                    // Định dạng: [MSG]:<MessageId>|<Sender>|<Content>
+                    string payload = $"[MSG]:{messageId}|{sender}|{content}";
+                    await SendStructuredMessageAsync(payload);
+
+                    // Tùy chọn: in ra messageId để người gửi biết (để dễ thu hồi)
+                    Console.WriteLine($"[SENT] id={messageId} | {content}");
+                }
             }
+
         }
     }
 
@@ -282,6 +341,15 @@ public class SecureChatClient
         {
             Console.WriteLine($"[ERROR] Gửi file thất bại: {ex.Message}");
         }
+    }
+
+    // Client gui leng thu hoi tin nhan voi server
+    private static async Task SendStructuredMessageAsync(string headerContent)
+    {
+        if (_sslStream == null) return;
+        var bytes = Encoding.UTF8.GetBytes(headerContent + "\n");
+        await _sslStream.WriteAsync(bytes);
+        await _sslStream.FlushAsync();
     }
 
     private static string GetMimeType(string fileName)

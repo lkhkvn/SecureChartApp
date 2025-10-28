@@ -3,6 +3,7 @@ using System.Collections.ObjectModel; // Cần thiết cho ObservableCollection
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls; // Cần thiết cho ListBox
+using System.Linq; //Dung de truy van
 
 // Đảm bảo namespace này khớp với project của bạn
 namespace SecureChatClientGUI
@@ -39,8 +40,36 @@ namespace SecureChatClientGUI
 
             _chatService = new ChatClientService(userName);
 
+
             // Đính kèm sự kiện cho các thông báo từ Service
             _chatService.StatusChanged += (status) => Dispatcher.Invoke(() => StatusTextBlock.Text = $"Trạng thái: {status}");
+
+            // Khi nhận tin nhắn văn bản mới
+            _chatService.MessageReceived += (message) =>
+                Dispatcher.Invoke(() => _chatService.Messages.Add(message));
+
+            // Khi có tin nhắn bị thu hồi
+            // Khi có tin nhắn bị thu hồi
+            _chatService.MessageRecalled += (messageId) =>
+                  Dispatcher.Invoke(() =>
+                  {
+                  var msg = _chatService.Messages.FirstOrDefault(m => m.MessageId == messageId);
+                  if (msg != null)
+                  {
+                     msg.Content = "[ Tin nhắn đã bị thu hồi ]"; // ✅ Giữ nguyên vị trí, chỉ đổi nội dung
+                  }
+                });
+
+
+
+            // Khi danh sách người dùng online thay đổi
+            _chatService.OnlineUsersUpdated += (users) =>
+                Dispatcher.Invoke(() =>
+                {
+                    _chatService.OnlineUsers.Clear();
+                    foreach (var user in users)
+                        _chatService.OnlineUsers.Add(user);
+                });
 
             // Xóa các tin nhắn cũ và danh sách online users khi kết nối mới
             _chatService.Messages.Clear();
@@ -176,6 +205,48 @@ namespace SecureChatClientGUI
         private void OnlineUsersListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             // Thêm logic xử lý khi người dùng chọn một user trong danh sách
+        }
+
+        private void UserNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
+        }
+
+        private async void Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chatService == null || !_chatService.IsConnected)
+                return;
+
+            // Lấy tin nhắn đang được chọn trong ListBox
+            if (ChatListBox.SelectedItem is ChatMessage selectedMessage)
+            {
+                // Chỉ cho phép thu hồi tin nhắn của chính mình
+                if (!selectedMessage.IsMine)
+                {
+                    MessageBox.Show("Bạn chỉ có thể thu hồi tin nhắn của chính mình.",
+                                    "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                // Gọi hàm thu hồi chính thức trong ChatClientService
+                if (!string.IsNullOrEmpty(selectedMessage.MessageId))
+                {
+                    await _chatService.RecallMessageAsync(selectedMessage.MessageId);
+
+                    // Tạm thời hiển thị thông báo
+                    selectedMessage.Content = " Tin Nhan da bi thu hoi";
+                }
+                else
+                {
+                     MessageBox.Show("Tin nhắn này không có ID hợp lệ để thu hồi.",
+                            "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+            }
+            else
+            {
+                MessageBox.Show("Vui lòng chọn tin nhắn để thu hồi.",
+                                "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 }
