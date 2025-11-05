@@ -1,0 +1,103 @@
+﻿/* login.css */
+
+/* Định nghĩa màu sắc cơ bản giống Zalo */
+:root {
+    --zalo-primary: #0068ff; /* Màu xanh Zalo */
+    --zalo-light-bg: #f5f5f5; /* Nền nhẹ */
+}
+
+/* CSS Căn giữa và Full Screen */
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--zalo-light-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* CSS Phong cách Zalo */
+.login-container {
+    width: 100%;
+    max-width: 400px; /* Chiều rộng cố định */
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 8px; /* Bo góc mềm mại */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+    .login-container h2 {
+        color: var(--zalo-primary);
+        margin-bottom: 30px;
+        font-weight: 700;
+    }
+
+.input-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+    .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 12px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+        .input-group input:focus {
+            border-color: var(--zalo-primary);
+            outline: none;
+        }
+
+button[type="submit"] {
+    width: 100%;
+    background-color: var(--zalo-primary);
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+    button[type="submit"]:hover {
+        background-color: #0056b3;
+    }
+
+.register-link {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+ .register-link a {
+        color: var(--zalo-primary);
+        text-decoration: none;
+        font-weight: 600;
+    }
+/* Màu đỏ tiêu chuẩn cho lỗi */
+.text-danger {
+    color: #dc3545; /* Đỏ sáng */
+    font-size: 0.9em;
+}
+
+/* Định dạng lỗi tổng thể (ví dụ: Tài khoản hoặc mật khẩu không hợp lệ) */
+.validation-summary-errors {
+    border: 1px solid #dc3545;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #f8d7da; /* Màu nền đỏ nhạt */
+    border-radius: 5px;
+}

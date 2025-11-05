@@ -1,0 +1,176 @@
+﻿@{
+    ViewData["Title"] = "SignalR Pro Chat";
+}
+
+<div class="chat-container">
+    <h2>🔥 SignalR Super Chat</h2>
+
+    <div class="chat-top">
+        <input type="text" id="userInput" placeholder="Tên của bạn..." />
+        <button id="connectBtn">Kết nối</button>
+    </div>
+
+    <div class="chat-body">
+        <div class="users-box">
+            <h4>🟢 Người dùng online</h4>
+            <ul id="userList"></ul>
+        </div>
+
+        <div class="chat-box">
+            <div id="messagesList" class="messages"></div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Nhập tin nhắn..." />
+                <button id="sendButton">Gửi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<audio id="notifySound" src="https://cdn.pixabay.com/download/audio/2021/09/20/audio_c4c8d8c3cb.mp3" preload="auto"></audio>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        let connection;
+        let username;
+
+        document.getElementById("connectBtn").addEventListener("click", async () => {
+            username = document.getElementById("userInput").value.trim();
+            if (!username) return alert("Nhập tên trước khi tham gia!");
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub?username=" + encodeURIComponent(username))
+                .build();
+
+            connection.on("ReceiveMessage", (user, message, time) => {
+                const msg = document.createElement("div");
+                msg.classList.add("msg");
+                msg.innerHTML = `<b>${user}</b> [${time}]: ${message}`;
+                if (user === username) msg.classList.add("me");
+                document.getElementById("messagesList").appendChild(msg);
+                playSound();
+            });
+
+            connection.on("UserJoined", (user) => {
+                showStatus(`${user} đã tham gia`);
+            });
+
+            connection.on("UserLeft", (user) => {
+                showStatus(`${user} đã rời đi`);
+            });
+
+            connection.on("UpdateUserList", (users) => {
+                const list = document.getElementById("userList");
+                list.innerHTML = "";
+                users.forEach(u => {
+                    const li = document.createElement("li");
+                    li.textContent = u;
+                    list.appendChild(li);
+                });
+            });
+
+            await connection.start();
+            document.querySelector(".chat-top").style.display = "none";
+            document.querySelector(".chat-body").style.display = "flex";
+        });
+
+        document.getElementById("sendButton").addEventListener("click", async () => {
+            const message = document.getElementById("messageInput").value.trim();
+            if (message)
+                await connection.invoke("SendMessage", username, message);
+            document.getElementById("messageInput").value = "";
+        });
+
+        function showStatus(text) {
+            const msg = document.createElement("div");
+            msg.classList.add("status");
+            msg.textContent = text;
+            document.getElementById("messagesList").appendChild(msg);
+        }
+
+        function playSound() {
+            document.getElementById("notifySound").play();
+        }
+    </script>
+
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .chat-container {
+            width: 900px;
+            margin: 40px auto;
+            background: #1b1b1b;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px #333;
+        }
+
+        .chat-body {
+            display: none;
+            gap: 20px;
+        }
+
+        .users-box {
+            width: 200px;
+            background: #222;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .chat-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .chat-input {
+            display: flex;
+            margin-top: 10px;
+        }
+
+            .chat-input input {
+                flex: 1;
+                padding: 8px;
+                border-radius: 6px;
+                border: none;
+                margin-right: 5px;
+            }
+
+            .chat-input button {
+                padding: 8px 12px;
+                background: #28a745;
+                border: none;
+                border-radius: 6px;
+                color: #fff;
+                cursor: pointer;
+            }
+
+        .msg {
+            margin: 4px 0;
+        }
+
+            .msg.me {
+                text-align: right;
+                color: #0f0;
+            }
+
+        .status {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            margin: 5px 0;
+        }
+    </style>
+}

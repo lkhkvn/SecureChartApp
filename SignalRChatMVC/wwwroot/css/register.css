@@ -1,0 +1,116 @@
+﻿/* Nội dung của tệp wwwroot/css/register.css */
+
+/* Cài đặt font chữ và màu nền chung */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0088ff; /* Màu xanh Zalo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Container chính của form */
+.container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 450px; /* Hơi rộng hơn đăng nhập vì có nhiều trường hơn */
+    text-align: center;
+}
+
+/* Tiêu đề */
+h2 {
+    color: #0088ff;
+    margin-bottom: 30px;
+    font-size: 1.8em;
+    font-weight: 600;
+}
+
+/* Nhóm input */
+.input-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+    .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+        font-size: 0.9em;
+    }
+
+    .input-group input[type="text"],
+    .input-group input[type="email"],
+    .input-group input[type="password"] {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+        font-size: 1em;
+    }
+
+    .input-group input:focus {
+        border-color: #0088ff;
+        outline: none;
+        box-shadow: 0 0 0 1px #0088ff;
+    }
+
+/* Nút Đăng ký */
+button[type="submit"] {
+    background-color: #0088ff; /* Màu chính Zalo */
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-top: 15px;
+    transition: background-color 0.3s;
+}
+
+    button[type="submit"]:hover {
+        background-color: #0077e6;
+    }
+
+/* Link Đăng nhập */
+p {
+    margin-top: 25px;
+    color: #555;
+    font-size: 0.95em;
+}
+
+    p a {
+        color: #0088ff;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+        p a:hover {
+            text-decoration: underline;
+        }
+
+/* CSS cho thông báo lỗi Validation */
+.text-danger {
+    color: #ff4d4f; /* Màu đỏ nổi bật cho lỗi */
+    font-size: 0.85em;
+    margin-top: 5px;
+    display: block;
+}
+
+
+/* Media Query cho màn hình nhỏ hơn (Responsive) */
+@media (max-width: 500px) {
+    .container {
+        margin: 20px;
+        padding: 30px 20px;
+    }
+}

@@ -1,0 +1,56 @@
+﻿@model SignalRChatMVC.Models.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Đăng ký Zalo";
+    // Đảm bảo không sử dụng Layout chung nếu bạn muốn trang đăng ký là một trang độc lập
+    Layout = null;
+}
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+
+    <link rel="stylesheet" href="~/css/register.css" />
+</head>
+
+<body>
+    <div class="container">
+        <h2>Tạo tài khoản</h2>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <form asp-action="Register" method="post">
+            <div class="input-group">
+                <label>Tên hiển thị</label>
+                <input asp-for="DisplayName" type="text" placeholder="Nhập tên hiển thị" required />
+                <span asp-validation-for="DisplayName" class="text-danger"></span>
+            </div>
+
+            <div class="input-group">
+                <label>Email</label>
+                <input asp-for="Email" type="email" placeholder="Nhập email" required />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="input-group">
+                <label>Mật khẩu</label>
+                <input asp-for="Password" type="password" placeholder="Tạo mật khẩu" required />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="input-group">
+                <label>Xác nhận Mật khẩu</label>
+                <input asp-for="ConfirmPassword" type="password" placeholder="Nhập lại mật khẩu" required />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+
+            <button type="submit">Đăng ký</button>
+
+            <p>Đã có tài khoản? <a asp-action="Login" asp-controller="Account">Đăng nhập</a></p>
+        </form>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+</body>
